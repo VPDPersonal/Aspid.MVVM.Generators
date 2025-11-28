@@ -1,10 +1,12 @@
 using Microsoft.CodeAnalysis;
-using Aspid.MVVM.Generators.Ids.Data;
-using static Aspid.Generator.Helpers.SymbolExtensions;
-using static Aspid.MVVM.Generators.Descriptions.General;
-using static Aspid.MVVM.Generators.Descriptions.Classes;
+using Aspid.Generators.Helper;
+using Aspid.MVVM.Generators.Generators.Ids.Data;
+using static Aspid.Generators.Helper.Classes;
+using static Aspid.MVVM.Generators.Helpers.SymbolExtensions;
+using static Aspid.MVVM.Generators.Generators.Descriptions.General;
+using static Aspid.MVVM.Generators.Generators.Descriptions.Classes;
 
-namespace Aspid.MVVM.Generators.ViewModels.Data.Members;
+namespace Aspid.MVVM.Generators.Generators.ViewModels.Data.Members;
 
 public abstract class BindableMember<T> : BindableMember
     where T : ISymbol
@@ -48,6 +50,15 @@ public abstract class BindableMember
         SourceName = sourceName;
         GeneratedName = generatedName;
         Id = new IdData(member, idPostfix);
+        
+        // Handle generic type parameters with constraints
+        if (typeKind is TypeKind.TypeParameter)
+        {
+            if (member.GetSymbolType() is ITypeParameterSymbol typeParameter)
+            {
+                typeKind = GetEffectiveTypeKind(typeParameter);
+            }
+        }
         
         switch (mode)
         {
@@ -130,4 +141,18 @@ public abstract class BindableMember
     public string ToInvokeBindableMemberString() => Mode is not (BindMode.OneWayToSource or BindMode.OneTime)
         ? $"this.{_bindableFieldName}?.Invoke({SourceName});" 
         : string.Empty;
+    
+    private static TypeKind GetEffectiveTypeKind(ITypeParameterSymbol typeParameter)
+    {
+        foreach (var constraint in typeParameter.ConstraintTypes)
+        {
+            if (constraint.TypeKind == TypeKind.Enum 
+                || constraint.SpecialType == SpecialType.System_Enum)
+            {
+                return TypeKind.Enum;
+            }
+        }
+        
+        return typeParameter.HasValueTypeConstraint ? TypeKind.Struct : TypeKind.Class;
+    }
 }
