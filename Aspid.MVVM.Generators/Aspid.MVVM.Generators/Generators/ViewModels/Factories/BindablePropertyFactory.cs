@@ -7,35 +7,34 @@ using BindMode = Aspid.MVVM.Generators.Generators.ViewModels.Data.BindMode;
 
 namespace Aspid.MVVM.Generators.Generators.ViewModels.Factories;
 
-public static class BindableFieldFactory
+public static class BindablePropertyFactory
 {
-    public static IReadOnlyCollection<BindableFieldInfo> Create(ImmutableArray<IFieldSymbol> fields)
+    public static IReadOnlyCollection<BindablePropertyInfo> Create(ImmutableArray<IPropertySymbol> properties)
     {
-        var bindableFields = new List<BindableFieldInfo>();
+        var bindableProperties = new List<BindablePropertyInfo>();
 
-        foreach (var field in fields)
+        foreach (var property in properties)
         {
-            var mode = field.GetBindMode();
+            var mode = property.GetBindMode();
 
             switch (mode)
             {
-                case BindMode.OneTime: break;
+                case BindMode.OneTime:
+                case BindMode.OneWay: break;
 
-                case BindMode.OneWay:
                 case BindMode.TwoWay:
                 case BindMode.OneWayToSource:
                     {
-                        if (field.IsReadOnly) continue;
+                        if (property.IsReadOnly) continue;
                         break;
                     }
-
-                case BindMode.None:
+                
                 default: continue;
             }
             
-            bindableFields.Add(new BindableFieldInfo(field, mode));
+            bindableProperties.Add(new BindablePropertyInfo(property, mode));
         }
 
-        return bindableFields;
+        return bindableProperties;
     }
 }
